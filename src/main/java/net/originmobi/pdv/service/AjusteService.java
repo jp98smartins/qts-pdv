@@ -22,10 +22,13 @@ import net.originmobi.pdv.singleton.Aplicacao;
 
 @Service
 public class AjusteService {
-	public AjusteService(AjusteRepository ajustes, ProdutoService produtos) {
+	public AjusteService(AjusteRepository ajustes, ProdutoService produtos, Aplicacao aplicacao) {
 		this.ajustes = ajustes;
 		this.produtos = produtos;
+		this.aplicacao = aplicacao;
 	}
+
+	private final Aplicacao aplicacao;
 
 	private final AjusteRepository ajustes;
 
@@ -47,7 +50,6 @@ public class AjusteService {
 
 	public Long novo() {
 		dataAtual = LocalDate.now();
-		Aplicacao aplicacao = Aplicacao.getInstancia();
 
 		Ajuste ajuste = new Ajuste(AjusteStatus.APROCESSAR, aplicacao.getUsuarioAtual(), Date.valueOf(dataAtual));
 		return ajustes.save(ajuste).getCodigo();
@@ -98,7 +100,7 @@ public class AjusteService {
 		if (ajuste.getStatus().equals(AjusteStatus.PROCESSADO)) {
 			throw new AlreadyProcessedException("O ajuste já esta processado");
 		}
-		
+
 		try {
 			ajustes.deleteById(ajuste.getCodigo());
 		} catch (Exception e) {
