@@ -1,5 +1,6 @@
 package service;
 
+import net.originmobi.pdv.enumerado.EntradaSaida;
 import net.originmobi.pdv.enumerado.ajuste.AjusteStatus;
 import net.originmobi.pdv.exceptions.ajuste.*;
 import net.originmobi.pdv.filter.AjusteFilter;
@@ -15,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -210,7 +212,7 @@ public class AjusteServiceTest {
         list.add(ajusteProduto);
         ajuste.setProdutos(list);
         ajuste.setStatus(AjusteStatus.APROCESSAR);
-        doThrow(new RuntimeException()).when(produtoService).ajusteEstoque(anyLong(), anyInt(), any(), anyString(), any());
+        doThrow(new RuntimeException()).when(produtoService).ajusteEstoque(anyLong(), anyInt(), any(EntradaSaida.class), anyString(), any());
         when(ajusteRepository.findById(anyLong())).thenReturn(Optional.of(ajuste));
 
         // Act
@@ -240,14 +242,82 @@ public class AjusteServiceTest {
     }
 
     @Test
-    public void processarChangeStatusObservationAndProcessDateWhenCompletesSuccessfully() {
+    public void processarChangeStatusObservationAndProcessDateWhenCompletesSuccessfullyEntrada() {
         // Arrange
+        final ArgumentCaptor<EntradaSaida> entradaSaidaArgumentCaptor = ArgumentCaptor.forClass(EntradaSaida.class);
+        final ArgumentCaptor<String> origemOperacaoArgumentCaptor = ArgumentCaptor.forClass(String.class);
         final Long code = 12345L;
         final String obs = "";
+        final Ajuste ajuste = new Ajuste();
+        final Produto produto = new Produto();
+        produto.setCodigo(12345L);
+        final AjusteProduto ajusteProduto = new AjusteProduto();
+        ajusteProduto.setProduto(produto);
+        ajusteProduto.setQtd_alteracao(123);
         final List<AjusteProduto> list = new ArrayList<>();
-        final Ajuste ajuste = mock(Ajuste.class);
-        when(ajuste.getStatus()).thenReturn(AjusteStatus.APROCESSAR);
-        when(ajuste.getProdutos()).thenReturn(list);
+        list.add(ajusteProduto);
+        ajuste.setProdutos(list);
+        ajuste.setStatus(AjusteStatus.APROCESSAR);
+        doNothing().when(produtoService).ajusteEstoque(anyLong(), anyInt(), any(EntradaSaida.class), anyString(), any());
+        when(ajusteRepository.findById(anyLong())).thenReturn(Optional.of(ajuste));
+        when(ajusteRepository.save(any())).thenReturn(ajuste);
+
+        // Act
+        final String result = ajusteService.processar(code, obs);
+
+        // Assert
+        assertEquals("Ajuste realizado com sucesso", result);
+        verify(produtoService).ajusteEstoque(anyLong(), anyInt(), entradaSaidaArgumentCaptor.capture(), origemOperacaoArgumentCaptor.capture(), any());
+        assertEquals("Referente ao ajuste de estoque " + code, origemOperacaoArgumentCaptor.getValue());
+        assertEquals(EntradaSaida.ENTRADA, entradaSaidaArgumentCaptor.getValue());
+    }
+
+    @Test
+    public void processarChangeStatusObservationAndProcessDateWhenCompletesSuccessfullySaida() {
+        // Arrange
+        final ArgumentCaptor<EntradaSaida> entradaSaidaArgumentCaptor = ArgumentCaptor.forClass(EntradaSaida.class);
+        final ArgumentCaptor<String> origemOperacaoArgumentCaptor = ArgumentCaptor.forClass(String.class);
+        final Long code = 12345L;
+        final String obs = "";
+        final Ajuste ajuste = new Ajuste();
+        final Produto produto = new Produto();
+        produto.setCodigo(12345L);
+        final AjusteProduto ajusteProduto = new AjusteProduto();
+        ajusteProduto.setProduto(produto);
+        ajusteProduto.setQtd_alteracao(0);
+        final List<AjusteProduto> list = new ArrayList<>();
+        list.add(ajusteProduto);
+        ajuste.setProdutos(list);
+        ajuste.setStatus(AjusteStatus.APROCESSAR);
+        doNothing().when(produtoService).ajusteEstoque(anyLong(), anyInt(), any(EntradaSaida.class), anyString(), any());
+        when(ajusteRepository.findById(anyLong())).thenReturn(Optional.of(ajuste));
+        when(ajusteRepository.save(any())).thenReturn(ajuste);
+
+        // Act
+        final String result = ajusteService.processar(code, obs);
+
+        // Assert
+        assertEquals("Ajuste realizado com sucesso", result);
+        verify(produtoService).ajusteEstoque(anyLong(), anyInt(), entradaSaidaArgumentCaptor.capture(), origemOperacaoArgumentCaptor.capture(), any());
+        assertEquals("Referente ao ajuste de estoque " + code, origemOperacaoArgumentCaptor.getValue());
+        assertEquals(EntradaSaida.SAIDA, entradaSaidaArgumentCaptor.getValue());
+    }
+
+    @Test
+    public void processarChangeStatusObservationAndProcessDateWhenCompletesSuccessfully() {
+        final Long code = 12345L;
+        final String obs = "";
+        final Ajuste ajuste = new Ajuste();
+        final Produto produto = new Produto();
+        produto.setCodigo(12345L);
+        final AjusteProduto ajusteProduto = new AjusteProduto();
+        ajusteProduto.setProduto(produto);
+        ajusteProduto.setQtd_alteracao(0);
+        final List<AjusteProduto> list = new ArrayList<>();
+        list.add(ajusteProduto);
+        ajuste.setProdutos(list);
+        ajuste.setStatus(AjusteStatus.APROCESSAR);
+        doNothing().when(produtoService).ajusteEstoque(anyLong(), anyInt(), any(EntradaSaida.class), anyString(), any());
         when(ajusteRepository.findById(anyLong())).thenReturn(Optional.of(ajuste));
         when(ajusteRepository.save(any())).thenReturn(ajuste);
 
